@@ -2,30 +2,65 @@
 
 A Claude Code skill that **lets agents see web animations** — and gives them the motion design knowledge to fix them.
 
-The hardest part of debugging an animation is articulating what's wrong. "It feels off" is hard to act on. A coding agent that can't actually watch the animation is guessing. This skill solves both problems:
+---
 
-## 1. Vision — agents can read animations frame-by-frame
-
-Bundled scripts record the page with Playwright (or ffmpeg for hover/click flows), extract frames at 25fps, and build a labelled contact sheet — a single grid image that shows the entire animation timeline at a glance, each tile labelled with its source frame number.
-
-The agent reads that one image to map when entrance / dwell / exit happen, then drills into specific frame numbers to find exactly where the animation breaks. The same workflow a motion designer uses reviewing a take in After Effects.
+## TL;DR
 
 ```bash
+# Install once
+git clone https://github.com/Schmandarine/web-motion-skill ~/.claude/skills/web-motion
+bash ~/.claude/skills/web-motion/scripts/setup.sh
+
+# Then start your dev server in your project:
+npm run dev    # serves at http://localhost:5173
+
+# Ask Claude to debug an animation. After it asks permission, it runs:
 bash ~/.claude/skills/web-motion/scripts/analyze.sh http://localhost:5173/your-page.html
 bash ~/.claude/skills/web-motion/scripts/contact-sheet.sh /tmp/web-motion-*/frames
 ```
 
-## 2. Judgment — Disney's 12 Principles, adapted for the web
+Within about 15 seconds Claude has a 24-tile labelled contact sheet of your animation, reads it as a single image, identifies where the animation breaks, and writes the fix.
 
-Once the agent can see what's broken, it needs the vocabulary to fix it. The skill loads:
+---
 
-- **The 12 Principles adapted to web** — Slow In/Out, Anticipation, Stagger, Squash & Stretch, Timing, Arc, Appeal — each with concrete CSS / GSAP examples
-- **The transfer function problem** — why scroll is a linear input and how easing curves compensate to make elements feel physical
-- **Scroll-scrubbed animation patterns** — incoming / dwell / outgoing structure, stagger direction, section sizing
-- **Animation safety rules** — `overflow-x: clip`, `box-sizing`, GSAP `from` initial state, percentage transforms
-- **An ease selection table** — what curve to use for entrance, exit, button press, scatter, settle, bounce
+## What Claude actually sees
 
-Without vision the agent guesses. Without the principles "it feels off" stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
+After running `analyze.sh` + `contact-sheet.sh`, Claude reads one image like this:
+
+![Example contact sheet](assets/example-contact-sheet.png)
+
+Each tile is a frame from the recording, labelled with its real source frame number. From this single image Claude can answer:
+
+- **When does the entrance start?** — around f64, cards begin rising from below
+- **How long is the dwell?** — f82 → f118, ~1.4s of cards held in place
+- **When does the exit begin?** — f127, the scatter throw starts
+- **Is the stagger direction correct?** — left card leads (matches reading order ✓)
+- **Are any frames jumping or clipping?**
+
+Then Claude drills into the interesting window — reads `f64` through `f80` individually to confirm the entrance timing, or `f127` through `f140` to confirm the exit. The same workflow a motion designer uses reviewing a take in After Effects.
+
+---
+
+## Why this exists
+
+The hardest part of debugging an animation is articulating what's wrong. *"It feels off"* is hard to act on. A coding agent that can't actually watch the animation is guessing. This skill solves both problems:
+
+**1. Vision** — bundled scripts record the page, extract frames at 25fps, and build a labelled contact sheet. The agent reads the images and reasons about timing, easing, and trajectory.
+
+**2. Judgment** — Disney's 12 Principles of Animation, adapted for web/GSAP/CSS/scroll input. Once the agent can see what's broken, the principles tell it how to fix it.
+
+Without vision the agent guesses. Without the principles *"it feels off"* stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
+
+---
+
+## Prerequisites
+
+- **Node.js** (≥18 recommended) — the only hard prerequisite. `setup.sh` installs the rest.
+- **macOS or Linux** — Windows untested.
+- **A running dev server** — `analyze.sh` opens a real browser at the URL you give it, so the page has to be reachable. Start your dev server in a separate terminal *before* running the analyze command.
+- **~400MB free disk space** for the Chromium browser and Playwright cache.
+
+---
 
 ## Install
 
@@ -35,58 +70,94 @@ bash ~/.claude/skills/web-motion/scripts/setup.sh
 ```
 
 `setup.sh` is platform-aware and asks consent before each install:
-- ffmpeg (~80MB via Homebrew on macOS, apt on Linux)
-- playwright npm package (installed locally inside the skill directory — no project pollution)
-- Chromium browser (~300MB via Playwright)
 
-A `.installed` marker is written on success. Future runs skip the check.
+- **ffmpeg** (~80MB) — via Homebrew on macOS, apt on Linux
+- **playwright** npm package — installed locally inside the skill directory, so it doesn't pollute any project
+- **Chromium browser** (~300MB) — downloaded via `npx playwright install chromium`
 
-Reload Claude Code. The skill auto-triggers on animation tasks, or can be invoked explicitly via `/web-motion`.
+A `.installed` marker is written on success. Subsequent runs skip the check.
+
+Reload Claude Code. The skill auto-triggers on animation tasks, or you can invoke it explicitly via `/web-motion`.
+
+---
 
 ## Usage
 
-The skill auto-triggers when you're working on anything that moves:
+### A full debugging session
 
-```
-make these cards animate in from below with a natural feel
-```
-```
-this exit animation feels abrupt — the cards just disappear
-```
-```
-what ease should I use for a button press?
+**1. Start your dev server.** `analyze.sh` records a real browser session — the page needs to be reachable.
+
+```bash
+cd ~/your-project
+npm run dev          # or any other dev server
+# → http://localhost:5173
 ```
 
-For frame-by-frame debugging, Claude will ask before starting a recording, then use the bundled scripts to capture, extract, and inspect:
+**2. Ask Claude to debug the animation.** Anything that involves motion auto-triggers the skill:
+
+> the card entrance animation feels off, can you check it?
+
+**3. Claude asks before recording**, then runs:
 
 ```bash
 bash ~/.claude/skills/web-motion/scripts/analyze.sh http://localhost:5173/your-page.html
+```
+
+Under the hood this launches headless Chromium, scrolls through the page over ~9 seconds, records video to `/tmp/web-motion-<timestamp>/`, converts the webm to mp4, and extracts ~220 frames at 25fps into `/tmp/web-motion-<timestamp>/frames/`.
+
+**4. Claude builds the contact sheet:**
+
+```bash
 bash ~/.claude/skills/web-motion/scripts/contact-sheet.sh /tmp/web-motion-*/frames
 ```
 
-The contact sheet shows the entire timeline as a single labelled grid image — Claude reads it once to map the animation, then drills into specific frame numbers to find issues.
+24 frames are sampled evenly, each labelled with its real source frame number, and tiled into a single PNG.
+
+**5. Claude reads the contact sheet and writes the fix.** From the one image it identifies entrance / dwell / exit windows, drills into specific frame numbers to confirm timing issues (`Read /tmp/.../frame_0064.png` etc.), edits your animation code, and re-runs `analyze.sh` to verify the fix worked.
+
+### Auto-trigger phrases
+
+The skill loads automatically when Claude detects motion-related work. Phrases that trigger it:
+
+> *"make these cards animate in from below with a natural feel"*
+> *"this exit animation feels abrupt — the cards just disappear"*
+> *"what ease should I use for a button press?"*
+> *"the entrance feels robotic — how can I make it feel physical?"*
+
+You can also invoke it explicitly with `/web-motion`.
+
+---
 
 ## Scripts
 
 | Script | Purpose |
 |---|---|
 | `doctor.sh` | Check whether all dependencies are installed |
-| `setup.sh` | Install missing dependencies (consent-based) |
+| `setup.sh` | Install missing dependencies (consent-based, platform-aware) |
 | `analyze.sh` | One-shot: record scroll animation + extract frames |
 | `contact-sheet.sh` | Build a labelled grid of evenly-sampled frames |
-| `record-playwright.mjs` | Playwright auto-scroll recording (called by analyze.sh) |
-| `record-ffmpeg-macos.sh` | Manual screen recording on macOS (for hover/click animations) |
+| `record-playwright.mjs` | Playwright auto-scroll recording (called by `analyze.sh`) |
+| `record-ffmpeg-macos.sh` | Manual screen recording on macOS (for hover/click flows) |
 | `record-ffmpeg-linux.sh` | Manual screen recording on Linux |
-| `extract-frames.sh` | Extract frames from a video, auto-converts webm → mp4 |
+| `extract-frames.sh` | Extract frames from a video — auto-converts webm → mp4 |
+
+---
 
 ## Background
 
-The core insight behind this skill: a `power2.inOut` ease curve is a mathematical approximation of how real objects with mass behave — accelerating from rest, decelerating back to rest. On a scroll-scrubbed animation, that curve acts as a transfer function that converts the mechanical linearity of scroll input into something the eye reads as physical.
+The core insight behind this skill: a `power2.inOut` ease curve is a mathematical approximation of how real objects with mass behave — accelerating from rest, decelerating back to rest. On a scroll-scrubbed animation, that curve acts as a *transfer function* that converts the mechanical linearity of scroll input into something the eye reads as physical.
 
 This is why two animations that move the same element between the same positions can feel completely different — one natural, one robotic — based purely on the ease curve.
 
+---
+
 ## Requirements
 
-- [Claude Code](https://claude.ai/code)
-- Node.js (only hard prerequisite — `setup.sh` installs the rest)
-- macOS or Linux (Windows untested)
+- [Claude Code](https://claude.ai/code) installed and authenticated
+- Node.js (≥18 recommended)
+- macOS or Linux
+- ~400MB free disk space
+
+## License
+
+MIT
