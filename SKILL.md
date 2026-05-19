@@ -1,16 +1,16 @@
 ---
 name: web-motion
-description: Lets Claude see and fix web animations. Bundles a video-recording + frame-extraction pipeline (Playwright, ffmpeg, contact sheets) so the agent can watch animations play frame-by-frame the same way a designer reviews a take — plus motion design principles (Disney's 12, adapted for web, GSAP, CSS, scroll input) to reason about what's wrong. Use whenever the user wants to add, improve, debug, or review any animation — scroll effects, transitions, hover states, entrance/exit, loading states, micro-interactions. Trigger even if the user doesn't say "animation" but describes something moving, appearing, disappearing, or feeling "off" or "robotic" or "too fast/slow".
+description: Closes the agentic coding loop for web animation. Lets Claude scroll the user's page while recording it (Playwright), extract frames, build a labelled contact sheet, and reason about timing/easing/trajectory frame-by-frame — plus motion design principles (Disney's 12, adapted for web, GSAP, CSS, scroll input) to name and fix what's wrong. Use whenever the user wants to add, improve, debug, or review any animation — scroll effects, transitions, hover states, entrance/exit, loading states, micro-interactions. Trigger even if the user doesn't say "animation" but describes something moving, appearing, disappearing, or feeling "off" or "robotic" or "too fast/slow".
 ---
 
 # Web Motion
 
-A two-part toolkit that gives agents both **vision** and **judgment** for web animation:
+This skill closes the agentic coding loop for web animation. Without it, you write animation code blind — you can't watch what you just produced, so you rely on the user to describe what feels wrong. With it you get both halves of the loop:
 
-1. **Vision** — bundled scripts record the page with Playwright (or ffmpeg for hover/click flows), extract frames at 25fps, and build a labelled contact sheet. The agent reads those images directly and reasons about timing, easing, and trajectory the way a motion designer reviews a take.
-2. **Judgment** — Disney's 12 Principles of Animation, adapted for the constraints of the web (scroll input, GSAP timelines, CSS transitions, browser rendering). Once the agent can see what's broken, the principles name what's wrong and point at the fix.
+1. **Vision** — bundled scripts record the page with Playwright (or ffmpeg for hover/click flows), extract frames at 25fps, and build a labelled contact sheet. You read those images directly and reason about timing, easing, and trajectory the way a motion designer reviews a take.
+2. **Judgment** — Disney's 12 Principles of Animation, adapted for the constraints of the web (scroll input, GSAP timelines, CSS transitions, browser rendering). Once you can see what's broken, the principles name what's wrong and point at the fix.
 
-The combination is what matters. Without vision, the agent guesses about an animation it can't perceive. Without the principles, "it feels off" stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
+The combination is what matters. Without vision, you guess about an animation you can't perceive. Without the principles, *"it feels off"* stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
 
 ## The Core Problem: Linear Input, Non-Linear Perception
 

@@ -1,6 +1,6 @@
 # web-motion
 
-A Claude Code skill that **lets agents see web animations** — and gives them the motion design knowledge to fix them.
+**Close the agentic coding loop for web animation.** Give your coding agent the ability to scroll your page while recording, analyze the result frame-by-frame, and optimize animations through natural language alone — no more screen recordings or trying to describe what *"feels off"*.
 
 ---
 
@@ -43,13 +43,21 @@ Then Claude drills into the interesting window — reads `f64` through `f80` ind
 
 ## Why this exists
 
-The hardest part of debugging an animation is articulating what's wrong. *"It feels off"* is hard to act on. A coding agent that can't actually watch the animation is guessing. This skill solves both problems:
+Until now, the loop for fixing a web animation with a coding agent has been open:
 
-**1. Vision** — bundled scripts record the page, extract frames at 25fps, and build a labelled contact sheet. The agent reads the images and reasons about timing, easing, and trajectory.
+1. You watch the animation.
+2. You try to articulate what feels wrong (*"too fast"*, *"feels robotic"*, *"the exit is jarring"*).
+3. The agent guesses what you mean and edits code.
+4. You watch again — still wrong.
+5. Repeat.
 
-**2. Judgment** — Disney's 12 Principles of Animation, adapted for web/GSAP/CSS/scroll input. Once the agent can see what's broken, the principles tell it how to fix it.
+The agent can write animation code but never actually sees it run. You're the only one in the loop with vision. This skill closes the loop by giving Claude two things:
 
-Without vision the agent guesses. Without the principles *"it feels off"* stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
+**1. Vision** — bundled scripts record the page with headless Chromium, extract frames at 25fps, and build a labelled contact sheet. The agent reads images directly and reasons about timing, easing, and trajectory.
+
+**2. Judgment** — Disney's 12 Principles of Animation, adapted for web, GSAP, CSS, and scroll input. Once the agent can see what's broken, the principles tell it how to fix it.
+
+With both, you can describe a problem in natural language — or just say *"the exit feels off"* — and the agent records, watches, diagnoses, and fixes on its own. No more sending screen recordings back and forth.
 
 ---
 
