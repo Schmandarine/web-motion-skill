@@ -12,6 +12,33 @@ This skill closes the agentic coding loop for web animation. Without it, you wri
 
 The combination is what matters. Without vision, you guess about an animation you can't perceive. Without the principles, *"it feels off"* stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
 
+## Works with the Official GSAP Skills
+
+This skill handles **vision and judgment** — recording the page, reading frames, naming what's wrong. The [official GSAP skills](https://github.com/greensock/gsap-skills) handle **API correctness** — writing GSAP code the right way (timelines, ScrollTrigger, plugins, React, performance).
+
+Together they close the full loop:
+
+1. **Write** — use the GSAP skills to produce correct animation code
+2. **Record** — this skill records and extracts frames
+3. **Diagnose** — this skill names the violated motion principle
+4. **Fix** — back to GSAP skills to edit the code
+5. **Verify** — re-record and confirm
+
+When fixing animation code mid-session, reach for the appropriate GSAP skill:
+
+| Task | GSAP skill |
+|---|---|
+| Tweens, easing, stagger | `gsap-core` |
+| Timeline sequencing, position parameter | `gsap-timeline` |
+| ScrollTrigger, pinning, scrub | `gsap-scrolltrigger` |
+| SplitText, ScrollSmoother, Flip, plugins | `gsap-plugins` |
+| React / Next.js | `gsap-react` |
+| Performance, jank, will-change | `gsap-performance` |
+| Vue, Svelte | `gsap-frameworks` |
+
+Install: `npx skills add https://github.com/greensock/gsap-skills`  
+Or in Claude Code: `/plugin marketplace add greensock/gsap-skills`
+
 ## The Core Problem: Linear Input, Non-Linear Perception
 
 The underlying idea: real objects have mass, so they never start or stop instantaneously. They accelerate from rest and decelerate back to rest. A `power2.inOut` curve is literally a mathematical approximation of that physical behavior.

@@ -151,6 +151,33 @@ You can also invoke it explicitly with `/web-motion`.
 
 ---
 
+## Works with the Official GSAP Skills
+
+web-motion is one half of the agentic animation loop. The [official GSAP skills](https://github.com/greensock/gsap-skills) are the other half.
+
+| | What it does |
+|---|---|
+| **GSAP skills** | Teach the agent to *write* correct GSAP code — API, timelines, ScrollTrigger, plugins, React, performance |
+| **web-motion** | Teaches the agent to *see* what the code produces — record, extract frames, diagnose, verify |
+
+Running them together, the full loop looks like this:
+
+1. Agent writes animation code → guided by the GSAP skills
+2. Agent records the page and extracts frames → web-motion `analyze.sh`
+3. Agent reads the contact sheet, names what's wrong (wrong ease, missing dwell, bad stagger direction…)
+4. Agent fixes the code → back to the GSAP skills
+5. Agent re-records to confirm the fix
+
+**Install the GSAP skills alongside this one:**
+
+```bash
+npx skills add https://github.com/greensock/gsap-skills
+```
+
+Or in Claude Code: `/plugin marketplace add greensock/gsap-skills`
+
+---
+
 ## Background
 
 The core insight behind this skill: a `power2.inOut` ease curve is a mathematical approximation of how real objects with mass behave — accelerating from rest, decelerating back to rest. On a scroll-scrubbed animation, that curve acts as a *transfer function* that converts the mechanical linearity of scroll input into something the eye reads as physical.
