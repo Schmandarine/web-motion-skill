@@ -1,9 +1,11 @@
 #!/bin/bash
 # Extract frames from a video for frame-by-frame inspection.
+# Auto-converts webm → mp4 first (raw webm extraction is flaky with ffmpeg).
+#
 # Usage: ./extract-frames.sh <input-video> [fps] [output-dir]
 #
 # Examples:
-#   ./extract-frames.sh output.mp4
+#   ./extract-frames.sh /tmp/recording.webm
 #   ./extract-frames.sh output.mp4 60 /tmp/my-frames
 
 INPUT="${1:?Usage: extract-frames.sh <input-video> [fps] [output-dir]}"
@@ -11,7 +13,19 @@ FPS="${2:-25}"
 OUTDIR="${3:-/tmp/anim-frames}"
 
 mkdir -p "$OUTDIR"
-ffmpeg -i "$INPUT" -vf "fps=${FPS}" "${OUTDIR}/frame_%04d.png" -y
+
+# webm direct extraction sometimes errors with "Input/output error" before any
+# frames are written. Re-encode to mp4 first — fast with ultrafast preset.
+if [[ "$INPUT" == *.webm ]]; then
+  CONVERTED="${INPUT%.webm}.mp4"
+  if [ ! -f "$CONVERTED" ]; then
+    echo "Converting webm → mp4..."
+    ffmpeg -i "$INPUT" -c:v libx264 -preset ultrafast -crf 18 "$CONVERTED" -y -loglevel error
+  fi
+  INPUT="$CONVERTED"
+fi
+
+ffmpeg -i "$INPUT" -vf "fps=${FPS}" "${OUTDIR}/frame_%04d.png" -y -loglevel error
 
 TOTAL=$(ls "$OUTDIR"/frame_*.png 2>/dev/null | wc -l | tr -d ' ')
 echo "Extracted ${TOTAL} frames at ${FPS}fps → ${OUTDIR}"

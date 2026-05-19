@@ -1,11 +1,16 @@
 ---
 name: web-motion
-description: Apply motion design principles to web animations. Use this skill whenever the user wants to add, improve, or review any animation on a website — scroll effects, transitions, hover states, entrance animations, loading states, micro-interactions. Trigger even if the user doesn't say "animation" but describes something moving, appearing, disappearing, or feeling "off" or "robotic" or "too fast/slow".
+description: Lets Claude see and fix web animations. Bundles a video-recording + frame-extraction pipeline (Playwright, ffmpeg, contact sheets) so the agent can watch animations play frame-by-frame the same way a designer reviews a take — plus motion design principles (Disney's 12, adapted for web, GSAP, CSS, scroll input) to reason about what's wrong. Use whenever the user wants to add, improve, debug, or review any animation — scroll effects, transitions, hover states, entrance/exit, loading states, micro-interactions. Trigger even if the user doesn't say "animation" but describes something moving, appearing, disappearing, or feeling "off" or "robotic" or "too fast/slow".
 ---
 
 # Web Motion
 
-Motion design principles adapted from Disney's 12 Principles of Animation, applied to the specific constraints of the web — scroll-driven animations, CSS transitions, GSAP timelines, and browser rendering.
+A two-part toolkit that gives agents both **vision** and **judgment** for web animation:
+
+1. **Vision** — bundled scripts record the page with Playwright (or ffmpeg for hover/click flows), extract frames at 25fps, and build a labelled contact sheet. The agent reads those images directly and reasons about timing, easing, and trajectory the way a motion designer reviews a take.
+2. **Judgment** — Disney's 12 Principles of Animation, adapted for the constraints of the web (scroll input, GSAP timelines, CSS transitions, browser rendering). Once the agent can see what's broken, the principles name what's wrong and point at the fix.
+
+The combination is what matters. Without vision, the agent guesses about an animation it can't perceive. Without the principles, "it feels off" stays unactionable. Together: watch the take → name the violated principle → write the fix → re-record to verify.
 
 ## The Core Problem: Linear Input, Non-Linear Perception
 
@@ -99,6 +104,27 @@ The overall animation system should feel coherent and have personality. Every mo
 
 ---
 
+## Animation Safety Rules
+
+Before writing any animation code, check these — they're easy to miss and cause broken layouts:
+
+**Horizontal overflow** — GSAP `from` animations with `x` transforms, or any element wider than the viewport, will create a horizontal scrollbar. Always add to the page root:
+```css
+html { overflow-x: clip; }
+```
+`clip` (not `hidden`) is preferred — it doesn't create a new stacking context and doesn't interfere with `position: fixed` elements.
+
+**box-sizing** — If `box-sizing: border-box` is not set globally, padding adds to `max-width`, making containers wider than intended. Always confirm the project has:
+```css
+*, *::before, *::after { box-sizing: border-box; }
+```
+
+**GSAP `from` initial state** — `gsap.from()` immediately applies the start state. If that start state is off-screen (e.g., `y: '100%'`, `x: '-100%'`), the element is invisible before ScrollTrigger fires. Use `gsap.fromTo()` or set `immediateRender: false` if this causes layout flash.
+
+**Percentage transforms vs pixel values** — `x: '100%'` in GSAP means 100% of the element's own width, not the viewport. For an element 800px wide, that's 800px off to the right — well outside the viewport. Use pixel values when you need precise control.
+
+---
+
 ## Scroll-Scrubbed Animation Patterns
 
 When building scroll-driven animations (GSAP ScrollTrigger or CSS scroll-timeline):
@@ -124,41 +150,56 @@ When an animation feels wrong but it's hard to articulate why (too fast, wrong t
 
 **Always ask the user before starting a recording.** Something like: "Want me to record the animation so I can inspect it frame by frame?" — never start recording silently.
 
-### Step 1: Capture the video
+### First-time setup
 
-**If the animation requires real user interaction** (manual scrolling, hover, click):
-
-Run the appropriate script from `scripts/`, then perform the animation in the browser and press `q` to stop:
-
-- macOS: `bash scripts/record-ffmpeg-macos.sh`
-- Linux: `bash scripts/record-ffmpeg-linux.sh`
-
-Output: `output.mp4` in the current directory.
-
-**If the animation can be driven by scroll automation** (scroll-scrubbed, no hover needed):
+Before recording, check that the skill's dependencies are installed:
 
 ```bash
-node scripts/record-playwright.mjs http://localhost:PORT/your-page.html
-# optional: node scripts/record-playwright.mjs <url> <totalScrollPx> <steps>
+bash ~/.claude/skills/web-motion/scripts/doctor.sh
 ```
 
-Requires `playwright` installed in the project (`npm install playwright`). Output: a `.webm` file in `/tmp/` — the script prints the exact path.
-
-### Step 2: Extract frames
+If anything is missing, run setup once (it asks consent for system installs):
 
 ```bash
-bash scripts/extract-frames.sh output.mp4
-# optional: bash scripts/extract-frames.sh output.mp4 <fps> <output-dir>
+bash ~/.claude/skills/web-motion/scripts/setup.sh
 ```
 
-Default is 25fps — one frame per 40ms, enough to catch timing issues without thousands of files. The script prints total frame count and duration. Use 60fps only if you need sub-frame precision.
+This installs ffmpeg (via Homebrew on macOS, apt on Linux), the playwright npm package inside the skill directory, and the Chromium browser (~300MB). A `.installed` marker is written on success so future runs skip the check.
 
-### Step 3: Inspect systematically
+### Step 1: Record and extract — one command
 
-Read frames as images using the Read tool. Don't just check the first and last — work through the full timeline:
+For scroll-driven animations (the common case), run:
 
-1. Sample every ~10th frame first to map the overall timeline (what's happening when)
-2. Once you find the interesting window, read every frame within it
+```bash
+bash ~/.claude/skills/web-motion/scripts/analyze.sh http://localhost:PORT/your-page.html
+# optional: analyze.sh <url> <totalScrollPx> <steps>
+```
+
+This records the page with Playwright auto-scrolling, converts to mp4, and extracts frames at 25fps. Output lands in `/tmp/web-motion-<timestamp>/frames/`.
+
+**For animations that need real user interaction** (hover, click, manual scroll), use the manual ffmpeg scripts instead:
+
+```bash
+bash ~/.claude/skills/web-motion/scripts/record-ffmpeg-macos.sh    # or -linux.sh
+bash ~/.claude/skills/web-motion/scripts/extract-frames.sh output.mp4
+```
+
+### Step 2: Map the timeline with a contact sheet
+
+Before reading individual frames, build a contact sheet — a 6×4 grid of evenly-sampled frames, each labelled with its source frame number:
+
+```bash
+bash ~/.claude/skills/web-motion/scripts/contact-sheet.sh /tmp/web-motion-*/frames
+```
+
+Read the resulting `contact-sheet.png` once. You'll see the entire animation timeline at a glance — entrance, dwell, and exit phases are immediately visible, and the frame-number labels tell you exactly where to drill in.
+
+### Step 3: Drill into the interesting window
+
+Once the contact sheet has told you roughly when each phase happens, read individual frames within those windows:
+
+1. Use the contact sheet to identify candidate frame numbers (e.g., "entrance starts around f60, dwell at f80–f115, exit around f120")
+2. Read every 2–3 frames within those windows using the Read tool
 3. Note the exact frame numbers where the animation starts, peaks, and ends
 4. Calculate visible duration: `(end_frame - start_frame) / fps = seconds visible`
 
@@ -167,8 +208,9 @@ Look for:
 - Elements visible for only a handful of frames (wrong end position, exiting immediately)
 - Unexpected jumps between frames (competing tweens, wrong label positioning)
 - Outgoing animations that don't mirror the incoming feel
+- Containers clipping elements during scatter/exit (`overflow: hidden` on a parent)
 
-Fix the issue in code, re-record, re-extract, and repeat until the frame inspection confirms the desired behavior.
+Fix the issue in code, re-run `analyze.sh`, regenerate the contact sheet, and repeat until the frame inspection confirms the desired behavior.
 
 ---
 

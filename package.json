@@ -1,0 +1,10 @@
+{
+  "name": "web-motion-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claude Code skill that lets agents see web animations frame-by-frame (via Playwright + ffmpeg + contact sheets) and apply motion design principles to fix them.",
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.60.0"
+  }
+}
