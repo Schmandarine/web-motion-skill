@@ -6,18 +6,33 @@
 
 ## TL;DR
 
+Ask Claude:
+> *"/web-motion this entrance animation feels robotic, fix it"*
+> *"/web-motion there's a flicker on page transitions, find it"*
+> *"/web-motion recreate this GSAP scroll-into-view animation"*
+
+That's it. Claude records your page, inspects it frame-by-frame, and ships the fix.
+
+---
+
+## Setup
+
+**1. Clone the skill into Claude Code's skills directory**
 ```bash
-# Install once
 git clone https://github.com/Schmandarine/web-motion-skill ~/.claude/skills/web-motion
-bash ~/.claude/skills/web-motion/scripts/setup.sh
-
-# Then start your dev server in your project:
-npm run dev    # serves at http://localhost:5173
-
-# Ask Claude to debug an animation. After it asks permission, it runs:
-bash ~/.claude/skills/web-motion/scripts/analyze.sh http://localhost:5173/your-page.html
-bash ~/.claude/skills/web-motion/scripts/contact-sheet.sh /tmp/web-motion-*/frames
 ```
+This makes the skill available globally in Claude Code — no project-level config needed.
+
+**2. Install dependencies**
+```bash
+bash ~/.claude/skills/web-motion/scripts/setup.sh
+```
+Installs three things (asks consent before each):
+- **ffmpeg** (~80MB) — converts recorded video to frames
+- **Playwright** — installed locally inside the skill dir, no project pollution
+- **Chromium** (~300MB) — the headless browser that records your page
+
+**3. Reload Claude Code** — the skill auto-triggers on animation tasks, or invoke it explicitly with `/web-motion`.
 
 Within about 15 seconds Claude has a 24-tile labelled contact sheet of your animation, reads it as a single image, identifies where the animation breaks, and writes the fix.
 
