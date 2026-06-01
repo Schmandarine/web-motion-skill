@@ -76,6 +76,66 @@ With both, you can describe a problem in natural language — or just say *"the 
 
 ---
 
+## The 12 Principles, Web-Adapted
+
+Disney's 12 Principles of Animation — adapted for GSAP, CSS, and scroll-scrubbed animation. These are baked into the skill so the agent can name what's wrong, not just see it.
+
+### 1. Slow In / Slow Out
+Real objects have mass — they accelerate from rest and decelerate back to rest.
+**Web:** Use `power2.inOut` or `cubic-bezier(0.4, 0, 0.2, 1)` for most movements. For scroll-scrubbed animations this is the transfer function that makes linear scroll feel physical.
+
+### 2. Anticipation
+A small preparatory motion in the opposite direction before the main action adds energy and signals intent.
+**Web:** Button scales down slightly before triggering. A card tilts before flying off. Keep it subtle (0.05–0.1 scale, 3–8deg) — it should register subconsciously.
+
+### 3. Follow Through & Overlapping Action
+Parts of a system continue moving after the main body stops. A group of elements starts and ends at slightly different times.
+**Web:** Stagger. Offset start times (`stagger: 0.08` in GSAP). A reversed stagger (`stagger: -0.12`) makes the last element lead, which often looks more natural for elements entering from below.
+
+### 4. Squash & Stretch
+Objects deform to show mass and flexibility.
+**Web:** `scale(0.95)` on button press. Spring eases that overshoot and bounce back. Avoid for UI that must feel rigid — use for playful, expressive moments.
+
+### 5. Staging
+Composition and timing direct the user's eye to what matters.
+**Web:** Animate headline first, body text second, CTA last. Don't animate 6 things at once — stage them so attention lands where you want it.
+
+### 6. Secondary Action
+Additional actions that support the main action without competing with it.
+**Web:** Icon rotates while its parent card slides in. A checkmark draws itself after a form submits. If it draws attention away from the main event, it's too prominent.
+
+### 7. Timing
+Duration determines perceived weight, speed, and mood.
+
+| Duration | Use |
+|---|---|
+| `100–150ms` | Immediate feedback (button press, hover state) |
+| `200–300ms` | UI transitions (dropdown, tooltip, tab switch) |
+| `400–600ms` | Meaningful transitions (modal enter, section change) |
+| `600ms+` | Emphasis or storytelling (hero entrance, scroll reveals) |
+
+### 8. Exaggeration
+Push the action beyond realism to clarify intent and add personality.
+**Web:** Spring eases that overshoot 10–15%. Rotation on a scatter effect at ±60–70deg instead of ±20deg. Scale on hover at 1.08 instead of 1.02. Calibrate to the product's personality.
+
+### 9. Arc
+Natural movements follow curved paths — straight-line motion feels mechanical.
+**Web:** Animate `x` and `y` with slightly different eases so diagonal paths curve. Cards thrown off-screen should arc, not travel in straight vectors.
+
+### 10. Depth
+Objects exist in 3D space. In flat UI, depth is simulated.
+**Web:** Parallax (foreground moves faster than background). `perspective` + `rotateX/Y` for card tilt on hover. Shadows that shift as elements lift. z-index layering reinforced by scale.
+
+### 11. Pose to Pose vs. Straight Ahead
+Define key states and interpolate (pose to pose), or simulate physics frame by frame (straight ahead).
+**Web:** CSS transitions and GSAP tweens are pose to pose. Use physics engines only when motion is too complex to keyframe — falling debris, cloth, fluid.
+
+### 12. Appeal — Motion Language Consistency
+The overall animation system should feel coherent. Every motion choice communicates something about the product.
+**Web:** Pick an easing vocabulary and stick to it. If entrance animations use `power2.inOut`, exits should too — same object, same physics. Fast and snappy = confident and modern. Slow and heavy = thoughtful and premium. Be intentional, be consistent.
+
+---
+
 ## Prerequisites
 
 - **Node.js** (≥18 recommended) — the only hard prerequisite. `setup.sh` installs the rest.
