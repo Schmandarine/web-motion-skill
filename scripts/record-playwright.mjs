@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 // Automated scroll recording via Playwright.
-// Usage: node record-playwright.mjs <url> [totalScrollPx] [steps] [outDir]
+// Usage: node record-playwright.mjs <url> [totalScrollPx] [steps] [outDir] [durationSec]
+//
+// durationSec: minimum total recording time measured from page load. If the
+// scroll phase finishes earlier, keep recording until this much time has
+// passed — needed for page-load animations longer than the default window.
 //
 // Examples:
 //   node record-playwright.mjs http://localhost:5173/demo.html
 //   node record-playwright.mjs http://localhost:5173/demo.html 5000 250
 //   node record-playwright.mjs http://localhost:5173/demo.html 5000 250 /tmp/run-1
+//   node record-playwright.mjs http://localhost:5173/intro.html 0 1 /tmp/run-1 6
 //
 // Output: a .webm file in outDir (default /tmp/). Playwright names it automatically.
 // Convert to mp4 if needed: ffmpeg -i <file>.webm output.mp4
@@ -25,6 +30,7 @@ if (!url) {
 const totalScroll = parseInt(process.argv[3] ?? '4000', 10)
 const steps = parseInt(process.argv[4] ?? '200', 10)
 const outDir = process.argv[5] ?? '/tmp/'
+const durationSec = parseFloat(process.argv[6] ?? '0')
 
 const browser = await chromium.launch()
 const ctx = await browser.newContext({
@@ -33,6 +39,7 @@ const ctx = await browser.newContext({
 })
 
 const page = await ctx.newPage()
+const t0 = Date.now()
 await page.goto(url)
 await page.waitForTimeout(1000)
 
@@ -42,6 +49,13 @@ for (let i = 0; i < steps; i++) {
 }
 
 await page.waitForTimeout(500)
+
+// Keep recording until durationSec has passed since page load, so page-load
+// animations longer than the scroll phase are captured in full.
+if (durationSec > 0) {
+  const remaining = durationSec * 1000 - (Date.now() - t0)
+  if (remaining > 0) await page.waitForTimeout(remaining)
+}
 const videoPath = await page.video().path()
 await ctx.close()
 await browser.close()

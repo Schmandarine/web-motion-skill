@@ -2,15 +2,21 @@
 # Extract frames from a video for frame-by-frame inspection.
 # Auto-converts webm → mp4 first (raw webm extraction is flaky with ffmpeg).
 #
-# Usage: ./extract-frames.sh <input-video> [fps] [output-dir]
+# Usage: ./extract-frames.sh <input-video> [fps] [output-dir] [start-s] [end-s]
+#
+# start-s / end-s: optional trim window in seconds — only frames between the
+# two timestamps are extracted. Either may be empty/omitted.
 #
 # Examples:
 #   ./extract-frames.sh /tmp/recording.webm
 #   ./extract-frames.sh output.mp4 60 /tmp/my-frames
+#   ./extract-frames.sh output.mp4 50 /tmp/my-frames 1 4.5
 
-INPUT="${1:?Usage: extract-frames.sh <input-video> [fps] [output-dir]}"
+INPUT="${1:?Usage: extract-frames.sh <input-video> [fps] [output-dir] [start-s] [end-s]}"
 FPS="${2:-25}"
 OUTDIR="${3:-/tmp/anim-frames}"
+START="${4:-}"
+END="${5:-}"
 
 mkdir -p "$OUTDIR"
 
@@ -25,7 +31,11 @@ if [[ "$INPUT" == *.webm ]]; then
   INPUT="$CONVERTED"
 fi
 
-ffmpeg -i "$INPUT" -vf "fps=${FPS}" "${OUTDIR}/frame_%04d.png" -y -loglevel error
+TRIM=()
+[ -n "$START" ] && TRIM+=(-ss "$START")
+[ -n "$END" ] && TRIM+=(-to "$END")
+
+ffmpeg -i "$INPUT" "${TRIM[@]}" -vf "fps=${FPS}" "${OUTDIR}/frame_%04d.png" -y -loglevel error
 
 TOTAL=$(ls "$OUTDIR"/frame_*.png 2>/dev/null | wc -l | tr -d ' ')
 echo "Extracted ${TOTAL} frames at ${FPS}fps → ${OUTDIR}"

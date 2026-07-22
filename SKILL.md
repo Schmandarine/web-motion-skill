@@ -199,10 +199,15 @@ For scroll-driven animations (the common case), run:
 
 ```bash
 bash ~/.claude/skills/web-motion/scripts/analyze.sh http://localhost:PORT/your-page.html
-# optional: analyze.sh <url> <totalScrollPx> <steps>
+# optional: analyze.sh <url> <totalScrollPx> <steps> [--duration <s>] [--start <s>] [--end <s>] [--fps <n>]
 ```
 
 This records the page with Playwright auto-scrolling, converts to mp4, and extracts frames at 25fps. Output lands in `/tmp/web-motion-<timestamp>/frames/`.
+
+Flags:
+- `--duration <s>` — minimum total recording time from page load. The default window is only ~2.5s (1s settle + scroll + 0.5s tail); **for page-load animations, always pass a duration comfortably longer than the full animation**, e.g. `analyze.sh <url> 0 1 --duration 6`.
+- `--start <s>` / `--end <s>` — trim the frame-extraction window, so dead time before/after the animation doesn't dilute the contact sheet.
+- `--fps <n>` — extraction framerate (default 25). Raise to 50 to inspect fast easings frame-by-frame.
 
 **For animations that need real user interaction** (hover, click, manual scroll), use the manual ffmpeg scripts instead:
 
