@@ -209,6 +209,13 @@ Flags:
 - `--start <s>` / `--end <s>` — trim the frame-extraction window, so dead time before/after the animation doesn't dilute the contact sheet.
 - `--fps <n>` — extraction framerate (default 25). Raise to 50 to inspect fast easings frame-by-frame.
 
+**For pure page-load animations** where the first ~1s matters (analyze.sh waits 1s after load before its scroll phase, so the very start of an intro can be missed), record with the autoplay recorder instead — it captures from t=0 with no scrolling and no pre-wait — then extract frames manually:
+
+```bash
+node ~/.claude/skills/web-motion/scripts/record-autoplay.mjs <url> [seconds] [outDir]
+bash ~/.claude/skills/web-motion/scripts/extract-frames.sh <video.webm> [fps] [outDir] [start-s] [end-s]
+```
+
 **For animations that need real user interaction** (hover, click, manual scroll), use the manual ffmpeg scripts instead:
 
 ```bash
