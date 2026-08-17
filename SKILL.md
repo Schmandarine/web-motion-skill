@@ -251,6 +251,62 @@ Look for:
 
 Fix the issue in code, re-run `analyze.sh`, regenerate the contact sheet, and repeat until the frame inspection confirms the desired behavior.
 
+### Recording gotchas that cost real time
+
+- **Headless throttles rAF.** With video recording on, headless Chromium can run an animation loop ~4× slow, and a WebGL-heavy page may never advance at all. If a recording looks frozen or an animation never fires, re-run headed (`chromium.launch({ headless: false })`) for the real GPU and real-time frames.
+- **Window scrolling is not wheel input.** Pages that listen for `wheel` on a container (or use a custom scroll hijack) ignore `window.scrollBy`. Use `page.mouse.wheel()`.
+- **Hover can gate the thing you want to record.** Melt/hover states, drag holds and "is the user interacting" flags often suppress the transition. Park the cursor out of the way (`page.mouse.move(40, 40)`) before triggering. If a page "won't animate", suspect an input gate before suspecting the recorder.
+- **Full-page contact sheets are too coarse for short animations.** A 0.7s morph in a 1440px frame is a few dark pixels. Crop to the element (`crop=W:H:X:Y`) before tiling.
+
+---
+
+## Cross-Browser Comparison (opt-in — only when the user asks)
+
+**This is not part of the normal loop. Do not run it, and do not install anything for it, unless the user explicitly asks to check other browser engines** — "does this work in Safari", "check Firefox", "test across browsers", or similar. The default workflow stays exactly as above: **Chromium + video + contact sheet.**
+
+Firefox and WebKit are **not installed by default** and are **~600MB together** (Firefox ~271MB, WebKit ~332MB). Never install them silently, and never install them on your own initiative.
+
+If you happen to notice the animation depends on something engines historically disagree on — **SVG filters, `feColorMatrix` thresholds, CSS `filter`/`backdrop-filter`, `mix-blend-mode`, large blurs, `clip-path`, scroll-timeline** — you may mention it in one line so the user can decide. Then carry on with the Chromium loop. Do not install, do not run, do not wait for an answer:
+
+> Worth noting: this leans on an SVG filter threshold, which is where engines diverge most. Say the word if you want a cross-engine check — it needs a ~600MB one-time install.
+
+Nothing here applies to plain transforms and opacity. Those agree everywhere.
+
+Install, once the user has asked (prompts before downloading):
+
+```bash
+bash ~/.claude/skills/web-motion/scripts/setup.sh --engines
+```
+
+### Use screenshots, NOT video, across engines
+
+Playwright video is not comparable between engines: **Firefox ignores the requested video size** (the page lands in a corner of a differently-scaled canvas) and **WebKit pads the head of the file with blank frames**. Both are fine for one engine, useless for diffing three.
+
+`shoot-engines.mjs` samples timed screenshots instead — one page load per sample, so every engine is measured from the same zero and geometry is pixel-identical:
+
+```bash
+S=~/.claude/skills/web-motion/scripts
+
+node $S/shoot-engines.mjs --url http://localhost:5173/demo.html \
+  --engines chromium,firefox,webkit \
+  --trigger key:ArrowDown --settle 800 \
+  --offsets 0,120,240,360,480,600 \
+  --clip 70,395,440,80
+
+bash $S/compare-sheet.sh /tmp/<out>/sheet.png 6 \
+  /tmp/<out>/chromium=chromium /tmp/<out>/firefox=firefox /tmp/<out>/webkit=webkit
+```
+
+Triggers: `none`, `click`, `key:<Key>`, `wheel:<px>`. Add `--reduced` for an extra `prefers-reduced-motion` pass per engine — the cheapest way to confirm a reduced-motion path actually snaps.
+
+`compare-sheet.sh` puts **one row per engine, one column per offset**. Read down each column: a blank cell where the others show the effect is a broken engine, and a shifted-but-identical sequence is just timing. It also works for one engine across two code versions (before/after a fix).
+
+`record-engines.mjs` does the video equivalent if you specifically want motion blur/pacing per engine — but read the caveat above first.
+
+### What this actually catches
+
+A real example. A gooey text morph (CSS blur under an SVG `feColorMatrix` alpha threshold) at `cut: 0.33` looked perfect in Chromium and WebKit. The comparison sheet showed Firefox rendering **nothing at all** for 120–600ms — Firefox's thresholded output is far thinner for the same blurred input, so no pixel cleared the cut. It read as a blink, not a morph. Dropping `cut` to `0.18` made all three identical. Chromium-only testing would have shipped it broken in Firefox.
+
 ---
 
 ## Quick Reference: Ease Selection
