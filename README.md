@@ -160,6 +160,13 @@ bash ~/.claude/skills/web-motion/scripts/setup.sh
 
 A `.installed` marker is written on success. Subsequent runs skip the check.
 
+Firefox and WebKit are **not installed** and are not part of the normal loop. They are only
+needed if you explicitly want to compare an animation across browser engines:
+
+```bash
+bash ~/.claude/skills/web-motion/scripts/setup.sh --engines   # ~600MB, prompts first
+```
+
 Reload Claude Code. The skill auto-triggers on animation tasks, or you can invoke it explicitly via `/web-motion`.
 
 ---
@@ -223,6 +230,18 @@ You can also invoke it explicitly with `/web-motion`.
 | `record-ffmpeg-macos.sh` | Manual screen recording on macOS (for hover/click flows) |
 | `record-ffmpeg-linux.sh` | Manual screen recording on Linux |
 | `extract-frames.sh` | Extract frames from a video — auto-converts webm → mp4 |
+
+Opt-in, cross-engine only — requires `setup.sh --engines`:
+
+| Script | Purpose |
+|---|---|
+| `shoot-engines.mjs` | Timed screenshots of the same animation in Chromium/Firefox/WebKit |
+| `record-engines.mjs` | Video of the same page per engine (see caveats in SKILL.md) |
+| `compare-sheet.sh` | One sheet, one row per engine, one column per moment |
+
+Use screenshots rather than video for cross-engine work: Firefox ignores the requested video
+size and WebKit pads the head of the file with blank frames, so videos are not comparable
+between engines. Video remains the default for ordinary single-engine analysis.
 
 ---
 
