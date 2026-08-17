@@ -82,6 +82,25 @@ else
   echo "✓ chromium found"
 fi
 
+# 5. Firefox + WebKit — OPTIONAL, cross-engine comparison only.
+# Off by default: they are large, slower to drive, and most animation work needs
+# exactly one engine. Opt in with `setup.sh --engines`.
+WANT_ENGINES=false
+for a in "$@"; do [ "$a" = "--engines" ] && WANT_ENGINES=true; done
+
+if $WANT_ENGINES; then
+  echo
+  echo "Extra engines: Firefox (~271MB) + WebKit (~332MB), ~600MB total on disk."
+  echo "Only needed to compare the same animation across browsers."
+  read -p "Download both via Playwright? [y/N] " yn
+  if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
+    cd "$SKILL_DIR"
+    npx playwright install firefox webkit
+  else
+    echo "Skipping. Chromium-only recording still works."
+  fi
+fi
+
 # Success marker — analyze.sh checks for this
 touch "$SKILL_DIR/.installed"
 
@@ -89,3 +108,8 @@ echo
 echo "✓ Setup complete."
 echo
 echo "Try: bash $SKILL_DIR/scripts/analyze.sh http://localhost:5173/your-page.html"
+if ! $WANT_ENGINES; then
+  echo
+  echo "Cross-browser comparison is optional and not installed."
+  echo "Add Firefox + WebKit (~600MB): bash $SKILL_DIR/scripts/setup.sh --engines"
+fi
