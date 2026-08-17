@@ -47,6 +47,23 @@ else
   echo "  bash $SKILL_DIR/scripts/setup.sh"
 fi
 
+# Firefox / WebKit — OPTIONAL. Only needed for cross-engine comparison, and they
+# are ~600MB together, so their absence is never an error.
+echo
+echo "Extra engines (optional — cross-browser comparison only)"
+for engine in firefox webkit; do
+  FOUND=false
+  for dir in "$HOME/Library/Caches/ms-playwright" "$HOME/.cache/ms-playwright"; do
+    [ -d "$dir" ] && ls "$dir" 2>/dev/null | grep -q "^$engine" && FOUND=true
+  done
+  if $FOUND; then
+    printf "  \033[32m✓\033[0m %s\n" "$engine"
+  else
+    printf "  \033[33m–\033[0m %s — not installed\n" "$engine"
+  fi
+done
+printf "  Add both (~600MB): bash %s/scripts/setup.sh --engines\n" "$SKILL_DIR"
+
 # GSAP skills — optional but recommended for the write→record→fix loop
 SKILLS_DIR="$(dirname "$SKILL_DIR")"
 GSAP_SKILLS=(gsap-core gsap-timeline gsap-scrolltrigger gsap-plugins gsap-utils gsap-react gsap-performance gsap-frameworks)
